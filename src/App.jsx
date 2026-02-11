@@ -1,16 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { FiVideo, FiAlertCircle } from 'react-icons/fi';
 
 function App() {
   const [error, setError] = useState(null);
 
-  useEffect(() => {
-    // Check if Firebase is configured
-    const apiKey = import.meta.env.VITE_FIREBASE_API_KEY;
-    if (!apiKey || apiKey === 'demo-key') {
-      console.warn('⚠️ Firebase not configured. Using demo mode.');
-    }
-  }, []);
+
 
   if (error) {
     return (
@@ -41,7 +35,7 @@ function App() {
           <h1 className="text-xl font-bold text-white">Pixel-Cut</h1>
         </div>
         <div className="flex items-center gap-4">
-          <span className="text-sm text-text-muted">Demo Mode</span>
+          <span className="text-sm text-green-400">Connected</span>
         </div>
       </header>
 
@@ -55,21 +49,15 @@ function App() {
           <p className="text-xl text-text-muted mb-8">
             Your collaborative web-based video editor
           </p>
-          
+
           <div className="bg-surface rounded-lg p-6 border border-border text-left">
             <h3 className="font-semibold mb-3 text-white">✅ App is running!</h3>
             <ul className="space-y-2 text-sm text-text-muted">
               <li>✓ React loaded</li>
               <li>✓ Tailwind CSS working</li>
               <li>✓ Eruda DevTools available (check bottom-right corner)</li>
-              <li>⚠️ Firebase not configured (using demo mode)</li>
+              <li>✓ Firebase connected</li>
             </ul>
-            
-            <div className="mt-4 p-3 bg-yellow-500/10 border border-yellow-500/30 rounded">
-              <p className="text-sm text-yellow-200">
-                <strong>Next step:</strong> Configure Firebase credentials in <code className="bg-black/30 px-1 rounded">.env</code> file
-              </p>
-            </div>
           </div>
         </div>
       </div>

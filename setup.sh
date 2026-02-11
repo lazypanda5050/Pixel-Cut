@@ -12,7 +12,7 @@ if [ ! -f .env ]; then
   echo "📝 Creating .env from .env.example..."
   cp .env.example .env
   echo ""
-  echo "🔧 Please edit .env and add your Firebase credentials:"
+  echo "🔧 Please edit .env and add your Firebase API key and project ID:"
   echo "   nano .env"
   echo ""
   read -p "Press Enter after you've configured .env..."
