@@ -1,31 +1,48 @@
-import { useState } from 'react';
-import { FiVideo, FiAlertCircle } from 'react-icons/fi';
+import { useState, useEffect } from 'react';
+import { onAuthStateChanged, signOut } from 'firebase/auth';
+import { auth } from './lib/firebase';
+import { FiVideo, FiLogOut } from 'react-icons/fi';
+import Auth from './components/Auth';
+import Editor from './components/Editor/Editor';
 
 function App() {
-  const [error, setError] = useState(null);
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
 
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (u) => {
+      setUser(u);
+      setLoading(false);
+    });
+    return unsubscribe;
+  }, []);
 
+  const handleSignOut = async () => {
+    try {
+      await signOut(auth);
+    } catch (err) {
+      console.error('Sign out error:', err);
+    }
+  };
 
-  if (error) {
+  // Loading state
+  if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background p-4">
-        <div className="max-w-md w-full bg-surface rounded-lg p-8 border border-border">
-          <div className="flex items-center gap-3 mb-4">
-            <FiAlertCircle className="text-red-500 text-3xl" />
-            <h1 className="text-2xl font-bold">Error</h1>
-          </div>
-          <p className="text-text-muted mb-4">{error.message}</p>
-          <button
-            onClick={() => window.location.reload()}
-            className="w-full py-2 bg-primary hover:bg-blue-600 rounded-lg transition-colors"
-          >
-            Reload Page
-          </button>
+      <div className="h-screen flex items-center justify-center bg-background">
+        <div className="text-center">
+          <div className="spinner mx-auto mb-4"></div>
+          <p className="text-text-muted">Loading Pixel-Cut...</p>
         </div>
       </div>
     );
   }
 
+  // Not logged in → Auth screen
+  if (!user) {
+    return <Auth />;
+  }
+
+  // Logged in → Editor
   return (
     <div className="h-screen flex flex-col bg-background">
       {/* Header */}
@@ -35,37 +52,21 @@ function App() {
           <h1 className="text-xl font-bold text-white">Pixel-Cut</h1>
         </div>
         <div className="flex items-center gap-4">
-          <span className="text-sm text-green-400">Connected</span>
+          <span className="text-sm text-text-muted">
+            {user.displayName || user.email}
+          </span>
+          <button
+            onClick={handleSignOut}
+            className="p-2 hover:bg-surface-light rounded-lg transition-colors text-text-muted hover:text-white"
+            title="Sign Out"
+          >
+            <FiLogOut />
+          </button>
         </div>
       </header>
 
-      {/* Main Content */}
-      <div className="flex-1 flex items-center justify-center p-8">
-        <div className="text-center max-w-2xl">
-          <div className="w-32 h-32 mx-auto mb-6 bg-primary/20 rounded-full flex items-center justify-center">
-            <FiVideo className="text-6xl text-primary" />
-          </div>
-          <h2 className="text-4xl font-bold mb-4 text-white">Welcome to Pixel-Cut! 🎬</h2>
-          <p className="text-xl text-text-muted mb-8">
-            Your collaborative web-based video editor
-          </p>
-
-          <div className="bg-surface rounded-lg p-6 border border-border text-left">
-            <h3 className="font-semibold mb-3 text-white">✅ App is running!</h3>
-            <ul className="space-y-2 text-sm text-text-muted">
-              <li>✓ React loaded</li>
-              <li>✓ Tailwind CSS working</li>
-              <li>✓ Eruda DevTools available (check bottom-right corner)</li>
-              <li>✓ Firebase connected</li>
-            </ul>
-          </div>
-        </div>
-      </div>
-
-      {/* Footer */}
-      <footer className="bg-surface border-t border-border px-4 py-3 text-center text-sm text-text-muted">
-        Made with ❤️ by the Pixel-Cut Team
-      </footer>
+      {/* Editor */}
+      <Editor user={user} />
     </div>
   );
 }

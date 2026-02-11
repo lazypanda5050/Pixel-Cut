@@ -3,11 +3,8 @@ import { auth } from '../lib/firebase';
 import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
-  signInWithPopup,
-  GoogleAuthProvider,
 } from 'firebase/auth';
 import { FiMail, FiLock, FiVideo } from 'react-icons/fi';
-import { FcGoogle } from 'react-icons/fc';
 
 export default function Auth() {
   const [isLogin, setIsLogin] = useState(true);
@@ -27,20 +24,6 @@ export default function Auth() {
       } else {
         await createUserWithEmailAndPassword(auth, email, password);
       }
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleGoogleAuth = async () => {
-    setLoading(true);
-    setError('');
-
-    try {
-      const provider = new GoogleAuthProvider();
-      await signInWithPopup(auth, provider);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -113,23 +96,6 @@ export default function Auth() {
               {loading ? 'Loading...' : isLogin ? 'Sign In' : 'Sign Up'}
             </button>
           </form>
-
-          {/* Divider */}
-          <div className="flex items-center my-6">
-            <div className="flex-1 border-t border-border"></div>
-            <span className="px-4 text-text-muted text-sm">or</span>
-            <div className="flex-1 border-t border-border"></div>
-          </div>
-
-          {/* Google Sign In */}
-          <button
-            onClick={handleGoogleAuth}
-            disabled={loading}
-            className="w-full py-3 bg-surface-light hover:bg-border rounded-lg font-medium transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <FcGoogle className="text-xl" />
-            Continue with Google
-          </button>
 
           {/* Toggle Login/Signup */}
           <p className="text-center mt-6 text-sm text-text-muted">
