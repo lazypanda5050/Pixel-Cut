@@ -1,12 +1,12 @@
 import { useRef, useState, useEffect, useCallback } from 'react';
-import { FiVideo, FiMusic, FiType, FiImage, FiLock, FiUnlock, FiEye, FiEyeOff, FiPlus } from 'react-icons/fi';
+import { FiVideo, FiMusic, FiType, FiImage, FiLock, FiUnlock, FiEye, FiEyeOff, FiPlus, FiTrash2, FiChevronUp, FiChevronDown } from 'react-icons/fi';
 import useEditorStore from '../../lib/editorStore';
 
 export default function Timeline() {
   const {
     tracks, clips, duration, currentTime, zoom, selectedClipId,
     setCurrentTime, setZoom, toggleTrackLock, toggleTrackVisibility, selectClip,
-    moveClip, addClip, addTrack,
+    moveClip, addClip, addTrack, deleteTrack, moveTrack,
   } = useEditorStore();
 
   const timelineRef = useRef(null);
@@ -202,7 +202,7 @@ export default function Timeline() {
         <div className="w-44 flex-shrink-0 border-r border-[#2a2d35] flex flex-col">
           <div className="h-6 bg-[#22252b] border-b border-[#2a2d35]" />
 
-          {tracks.map((track) => {
+          {tracks.map((track, index) => {
             const Icon = TRACK_ICONS[track.type] || FiVideo;
             const colors = getTypeColor(track.type);
             const trackClipCount = clips.filter(c => c.trackId === track.id).length;
@@ -220,11 +220,31 @@ export default function Timeline() {
                   )}
                 </div>
                 <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button onClick={() => toggleTrackVisibility(track.id)} className="p-0.5 rounded hover:bg-[#2a2d35]">
+                  <button
+                    onClick={() => moveTrack(track.id, 'up')}
+                    disabled={index === 0}
+                    className={`p-0.5 rounded hover:bg-[#2a2d35] ${index === 0 ? 'opacity-30 cursor-not-allowed' : ''}`}
+                    title="Move Track Up"
+                  >
+                    <FiChevronUp className="text-[10px] text-[#808690]" />
+                  </button>
+                  <button
+                    onClick={() => moveTrack(track.id, 'down')}
+                    disabled={index === tracks.length - 1}
+                    className={`p-0.5 rounded hover:bg-[#2a2d35] ${index === tracks.length - 1 ? 'opacity-30 cursor-not-allowed' : ''}`}
+                    title="Move Track Down"
+                  >
+                    <FiChevronDown className="text-[10px] text-[#808690]" />
+                  </button>
+                  <div className="w-px h-3 bg-[#2a2d35] mx-1" />
+                  <button onClick={() => toggleTrackVisibility(track.id)} className="p-0.5 rounded hover:bg-[#2a2d35]" title={track.visible ? "Hide Track" : "Show Track"}>
                     {track.visible ? <FiEye className="text-[10px] text-[#808690]" /> : <FiEyeOff className="text-[10px] text-[#808690]" />}
                   </button>
-                  <button onClick={() => toggleTrackLock(track.id)} className="p-0.5 rounded hover:bg-[#2a2d35]">
+                  <button onClick={() => toggleTrackLock(track.id)} className="p-0.5 rounded hover:bg-[#2a2d35]" title={track.locked ? "Unlock Track" : "Lock Track"}>
                     {track.locked ? <FiLock className="text-[10px] text-[#808690]" /> : <FiUnlock className="text-[10px] text-[#808690]" />}
+                  </button>
+                  <button onClick={() => deleteTrack(track.id)} className="p-0.5 rounded hover:bg-[#2a2d35] hover:text-red-400" title="Delete Track">
+                    <FiTrash2 className="text-[10px] text-[#808690] hover:text-red-400" />
                   </button>
                 </div>
               </div>
@@ -232,13 +252,23 @@ export default function Timeline() {
           })}
 
           <div className="flex-1 flex items-start pt-2 px-2">
-            <button
-              onClick={() => addTrack('video')}
-              className="flex items-center gap-1 text-[10px] text-[#808690] hover:text-[#c0c4cc] transition-colors"
-            >
-              <FiPlus className="text-xs" />
-              Add Track
-            </button>
+            <div className="flex flex-col gap-1 w-full">
+              <span className="text-[9px] text-[#555860] px-1 uppercase tracking-wider font-semibold">Add Track</span>
+              <div className="grid grid-cols-2 gap-1">
+                <button onClick={() => addTrack('video')} className="flex items-center justify-center gap-1 p-1.5 rounded bg-[#2a2d35] hover:bg-[#32363f] transition-colors text-[10px] text-[#c0c4cc]">
+                  <FiVideo className="text-blue-400" /> Video
+                </button>
+                <button onClick={() => addTrack('audio')} className="flex items-center justify-center gap-1 p-1.5 rounded bg-[#2a2d35] hover:bg-[#32363f] transition-colors text-[10px] text-[#c0c4cc]">
+                  <FiMusic className="text-green-400" /> Audio
+                </button>
+                <button onClick={() => addTrack('text')} className="flex items-center justify-center gap-1 p-1.5 rounded bg-[#2a2d35] hover:bg-[#32363f] transition-colors text-[10px] text-[#c0c4cc]">
+                  <FiType className="text-purple-400" /> Text
+                </button>
+                <button onClick={() => addTrack('image')} className="flex items-center justify-center gap-1 p-1.5 rounded bg-[#2a2d35] hover:bg-[#32363f] transition-colors text-[10px] text-[#c0c4cc]">
+                  <FiImage className="text-amber-400" /> Image
+                </button>
+              </div>
+            </div>
           </div>
         </div>
 

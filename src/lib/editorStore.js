@@ -43,11 +43,56 @@ const useEditorStore = create((set, get) => ({
     // Media Bin
     media: [],
     addMedia: (file) => set((s) => ({ media: [...s.media, file] })),
+    updateMedia: (mediaId, updates) => set((s) => ({
+        media: s.media.map(m => m.id === mediaId ? { ...m, ...updates } : m),
+    })),
+
+    // Project Management
+    currentProject: null,
+
+    setProject: (project) => set({
+        currentProject: project,
+        // Load state if present
+        ...(project.state || {})
+    }),
+
+    loadProjectState: (state) => set({
+        ...state,
+        // Ensure some defaults if missing
+        tracks: state.tracks || [],
+        clips: state.clips || [],
+        media: state.media || [],
+        duration: state.duration || 0,
+        zoom: state.zoom || 1
+    }),
+
+    resetEditor: () => set({
+        currentProject: null,
+        tracks: [
+            { id: 'video-1', name: 'Video', type: 'video', locked: false, visible: true },
+            { id: 'audio-1', name: 'Audio', type: 'audio', locked: false, visible: true },
+        ],
+        clips: [],
+        media: [],
+        duration: 0,
+        currentTime: 0,
+        selectedClipId: null,
+        activeTool: null
+    }),
 
     // Clip actions
     addClip: (clip) => set((s) => {
         const id = `clip-${clipIdCounter++}`;
-        const newClip = { id, ...clip };
+        const newClip = {
+            id,
+            opacity: 100,
+            volume: 100,
+            posX: 0,
+            posY: 0,
+            scale: 100,
+            rotation: 0,
+            ...clip,
+        };
         const newClips = [...s.clips, newClip];
 
         // Recalculate total duration
@@ -100,6 +145,12 @@ const useEditorStore = create((set, get) => ({
     })),
 
     selectClip: (clipId) => set({ selectedClipId: clipId }),
+
+    updateClipProperties: (clipId, props) => set((s) => ({
+        clips: s.clips.map(c =>
+            c.id === clipId ? { ...c, ...props } : c
+        ),
+    })),
 
     moveClip: (clipId, newStartTime, newTrackId) => set((s) => {
         const clip = s.clips.find(c => c.id === clipId);
@@ -165,6 +216,30 @@ const useEditorStore = create((set, get) => ({
                 visible: true,
             }],
         };
+    }),
+
+    deleteTrack: (trackId) => set((s) => ({
+        tracks: s.tracks.filter(t => t.id !== trackId),
+        // Also remove clips associated with this track
+        clips: s.clips.filter(c => c.trackId !== trackId),
+        // Deselect if selected clip was on this track
+        selectedClipId: s.clips.find(c => c.id === s.selectedClipId && c.trackId === trackId) ? null : s.selectedClipId
+    })),
+
+    moveTrack: (trackId, direction) => set((s) => {
+        const index = s.tracks.findIndex(t => t.id === trackId);
+        if (index === -1) return s;
+
+        const newTracks = [...s.tracks];
+        if (direction === 'up' && index > 0) {
+            [newTracks[index], newTracks[index - 1]] = [newTracks[index - 1], newTracks[index]];
+        } else if (direction === 'down' && index < newTracks.length - 1) {
+            [newTracks[index], newTracks[index + 1]] = [newTracks[index + 1], newTracks[index]];
+        } else {
+            return s;
+        }
+
+        return { tracks: newTracks };
     }),
 
     // Get the selected clip object

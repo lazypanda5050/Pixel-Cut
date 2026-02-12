@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import { initializeFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 import { getDatabase } from 'firebase/database';
 
@@ -19,7 +19,10 @@ const app = initializeApp(firebaseConfig);
 
 // Initialize services
 export const auth = getAuth(app);
-export const db = getFirestore(app);
+// Use initializeFirestore to force long polling, which helps with firewalls/network issues causing hangs
+export const db = initializeFirestore(app, {
+  experimentalForceLongPolling: true,
+}, 'video-data');
 export const storage = getStorage(app);
 export const realtimeDb = getDatabase(app);
 

@@ -9,6 +9,7 @@ import Preview from './Preview';
 import Timeline from './Timeline';
 import Toolbar from './Toolbar';
 import useEditorStore from '../../lib/editorStore';
+import { uploadMediaFile } from '../../lib/db';
 
 const TOOL_SECTIONS = [
   {
@@ -56,7 +57,7 @@ export default function Editor({ user }) {
     isPlaying, currentTime, duration, clips, activeTool, selectedClipId,
     togglePlayPause, setCurrentTime, setDuration, setActiveTool,
     addClip, selectClip, getSelectedClip, splitClip,
-    media, addMedia,
+    media, addMedia, updateClipProperties, updateMedia,
   } = useEditorStore();
 
   const [activeView, setActiveView] = useState('preview');
@@ -66,67 +67,72 @@ export default function Editor({ user }) {
 
   const selectedClip = getSelectedClip();
 
+  const handleClipPropChange = (prop, value) => {
+    if (!selectedClip) return;
+    const numVal = parseFloat(value);
+    if (!isNaN(numVal)) {
+      updateClipProperties(selectedClip.id, { [prop]: numVal });
+    }
+  };
+
+  const uploadToStorage = async (mediaId, file) => {
+    try {
+      const downloadURL = await uploadMediaFile(user.uid, file);
+      updateMedia(mediaId, { url: downloadURL, uploading: false });
+    } catch (err) {
+      console.error('Failed to upload to Storage:', err);
+      updateMedia(mediaId, { uploading: false, uploadError: true });
+    }
+  };
+
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    const url = URL.createObjectURL(file);
+    const blobUrl = URL.createObjectURL(file);
+    const mediaId = Date.now().toString();
     let mediaType = 'video';
-    let trackId = 'video-1';
 
     if (file.type.startsWith('image/')) {
       mediaType = 'image';
-      trackId = 'image-1';
-      // Images get a default 5s duration
       addMedia({
-        id: Date.now().toString(),
+        id: mediaId,
         type: mediaType,
         name: file.name,
-        url,
-        file,
+        url: blobUrl,
+        uploading: true,
       });
-
-      // Also add to timeline for convenience (or remove this if we want strict bin-only)
-      // keeping it for now as "Import" usually implies "Import to project"
-      // but the user said "Make the project bin work", so let's just add to bin?
-      // "When I press import, I want it in the bin".
-      // But standard behavior in this app was "import to timeline".
-      // I'll add to bin ONLY, so the user is forced to use the bin (as requested "Make the project bin work").
-      // Wait, if I do that, the user might be confused if they don't see it on timeline.
-      // But "Make the project bin work" implies they want to use it.
-      // I'll add to bin, and if the timeline is empty, maybe add it to timeline too?
-      // Let's just add to BIN.
+      uploadToStorage(mediaId, file);
     } else if (file.type.startsWith('audio/')) {
       mediaType = 'audio';
-      trackId = 'audio-1';
-      const audio = new Audio(url);
+      const audio = new Audio(blobUrl);
       audio.onloadedmetadata = () => {
         addMedia({
-          id: Date.now().toString(),
+          id: mediaId,
           type: mediaType,
           name: file.name,
-          url,
+          url: blobUrl,
           duration: audio.duration,
-          file,
+          uploading: true,
         });
+        uploadToStorage(mediaId, file);
       };
     } else if (file.type.startsWith('video/')) {
       const video = document.createElement('video');
       video.preload = 'metadata';
       video.onloadedmetadata = () => {
         addMedia({
-          id: Date.now().toString(),
+          id: mediaId,
           type: mediaType,
           name: file.name,
-          url,
+          url: blobUrl,
           duration: video.duration,
-          file,
+          uploading: true,
         });
-        // URL.revokeObjectURL(video.src); // Keep alive
+        uploadToStorage(mediaId, file);
       };
-      video.src = url;
+      video.src = blobUrl;
     }
-
 
     // Reset so the same file can be re-selected
     e.target.value = '';
@@ -157,9 +163,6 @@ export default function Editor({ user }) {
       return;
     }
 
-    // If clicking other tools, ensure we go back to preview (unless we want tools to work in media view?)
-    // Usually tools might apply to preview. Let's switch to preview if it's a tool that needs it?
-    // Actually, let's just set the tool. The user can switch views manually.
     setActiveTool(toolId);
   };
 
@@ -256,9 +259,14 @@ export default function Editor({ user }) {
                   <div
                     key={item.id}
                     className="aspect-square bg-[#22252b] rounded-lg border border-[#2a2d35] hover:border-blue-500/50 cursor-grab flex flex-col items-center justify-center relative group p-2 transition-all hover:bg-[#2a2d35]"
-                    draggable
+                    draggable={!item.uploading}
                     onDragStart={(e) => handleDragStart(e, item)}
                   >
+                    {item.uploading && (
+                      <div className="absolute inset-0 bg-black/40 rounded-lg flex items-center justify-center z-10">
+                        <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-blue-400"></div>
+                      </div>
+                    )}
                     {item.type === 'video' ? <FiFilm className="text-2xl text-[#555860] mb-2 group-hover:text-blue-400 transition-colors" /> :
                       item.type === 'image' ? <FiImage className="text-2xl text-[#555860] mb-2 group-hover:text-blue-400 transition-colors" /> :
                         <FiMusic className="text-2xl text-[#555860] mb-2 group-hover:text-blue-400 transition-colors" />
@@ -282,16 +290,11 @@ export default function Editor({ user }) {
 
         {/* Right Sidebar - Properties */}
         <div className="w-64 bg-[#1a1d23] border-l border-[#2a2d35] flex flex-col overflow-y-auto">
-          {/* Tabs */}
+          {/* Header */}
           <div className="flex border-b border-[#2a2d35]">
-            {['properties', 'inspector'].map((tab) => (
-              <button
-                key={tab}
-                className="flex-1 py-2 text-xs font-medium capitalize transition-colors text-[#808690] hover:text-[#c0c4cc] first:border-b-2 first:border-blue-400 first:text-blue-400"
-              >
-                {tab}
-              </button>
-            ))}
+            <div className="flex-1 py-2 text-xs font-medium text-center text-blue-400 border-b-2 border-blue-400">
+              Properties
+            </div>
           </div>
 
           <div className="p-3 space-y-4">
@@ -309,17 +312,18 @@ export default function Editor({ user }) {
                   <h4 className="text-[10px] font-semibold text-[#808690] uppercase tracking-wider mb-2">Transform</h4>
                   <div className="space-y-2">
                     {[
-                      { label: 'Position X', value: '0' },
-                      { label: 'Position Y', value: '0' },
-                      { label: 'Scale', value: '100%' },
-                      { label: 'Rotation', value: '0°' },
-                    ].map((prop) => (
-                      <div key={prop.label} className="flex items-center justify-between">
-                        <span className="text-[11px] text-[#808690]">{prop.label}</span>
+                      { label: 'Position X', prop: 'posX' },
+                      { label: 'Position Y', prop: 'posY' },
+                      { label: 'Scale', prop: 'scale' },
+                      { label: 'Rotation', prop: 'rotation' },
+                    ].map(({ label, prop }) => (
+                      <div key={prop} className="flex items-center justify-between">
+                        <span className="text-[11px] text-[#808690]">{label}</span>
                         <input
-                          type="text"
-                          defaultValue={prop.value}
-                          className="w-16 px-1.5 py-0.5 text-[11px] text-right bg-[#22252b] border border-[#2a2d35] rounded text-[#c0c4cc] focus:outline-none focus:border-blue-500"
+                          type="number"
+                          value={selectedClip[prop] ?? 0}
+                          onChange={(e) => handleClipPropChange(prop, e.target.value)}
+                          className="w-16 px-1.5 py-0.5 text-[11px] text-right bg-[#22252b] border border-[#2a2d35] rounded text-[#c0c4cc] focus:outline-none focus:border-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                         />
                       </div>
                     ))}
@@ -330,8 +334,15 @@ export default function Editor({ user }) {
                 <div>
                   <h4 className="text-[10px] font-semibold text-[#808690] uppercase tracking-wider mb-2">Opacity</h4>
                   <div className="flex items-center gap-2">
-                    <input type="range" min="0" max="100" defaultValue="100" className="flex-1 h-1 accent-blue-500" />
-                    <span className="text-[11px] text-[#808690] w-8 text-right">100%</span>
+                    <input
+                      type="range"
+                      min="0"
+                      max="100"
+                      value={selectedClip.opacity ?? 100}
+                      onChange={(e) => handleClipPropChange('opacity', e.target.value)}
+                      className="flex-1 h-1 accent-blue-500"
+                    />
+                    <span className="text-[11px] text-[#808690] w-8 text-right">{selectedClip.opacity ?? 100}%</span>
                   </div>
                 </div>
 
@@ -340,8 +351,15 @@ export default function Editor({ user }) {
                   <div>
                     <h4 className="text-[10px] font-semibold text-[#808690] uppercase tracking-wider mb-2">Volume</h4>
                     <div className="flex items-center gap-2">
-                      <input type="range" min="0" max="100" defaultValue="100" className="flex-1 h-1 accent-blue-500" />
-                      <span className="text-[11px] text-[#808690] w-8 text-right">100%</span>
+                      <input
+                        type="range"
+                        min="0"
+                        max="100"
+                        value={selectedClip.volume ?? 100}
+                        onChange={(e) => handleClipPropChange('volume', e.target.value)}
+                        className="flex-1 h-1 accent-blue-500"
+                      />
+                      <span className="text-[11px] text-[#808690] w-8 text-right">{selectedClip.volume ?? 100}%</span>
                     </div>
                   </div>
                 )}
