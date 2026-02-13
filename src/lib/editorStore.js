@@ -46,6 +46,9 @@ const useEditorStore = create((set, get) => ({
     updateMedia: (mediaId, updates) => set((s) => ({
         media: s.media.map(m => m.id === mediaId ? { ...m, ...updates } : m),
     })),
+    deleteMedia: (mediaId) => set((s) => ({
+        media: s.media.filter(m => m.id !== mediaId),
+    })),
 
     // Project Management
     currentProject: null,

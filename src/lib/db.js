@@ -61,14 +61,17 @@ export const saveProject = async (projectId, editorState) => {
         // Extract only serializable data, strip non-serializable file objects
         const serializableState = {
             tracks: editorState.tracks,
-            clips: editorState.clips,
+            clips: editorState.clips.map(({ file, ...rest }) => rest),
             duration: editorState.duration,
             zoom: editorState.zoom,
             media: editorState.media.map(({ file, uploading, ...rest }) => rest)
         };
 
+        // Deep sanitize to remove undefined values which Firestore rejects
+        const sanitizedState = JSON.parse(JSON.stringify(serializableState));
+
         await updateDoc(projectRef, {
-            state: serializableState,
+            state: sanitizedState,
             updatedAt: serverTimestamp()
         });
     } catch (error) {

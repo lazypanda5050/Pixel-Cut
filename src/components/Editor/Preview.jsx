@@ -2,7 +2,7 @@ import { useRef, useEffect, useState, useMemo } from 'react';
 import { FiPlay, FiPause, FiUpload } from 'react-icons/fi';
 import useEditorStore from '../../lib/editorStore';
 
-export default function Preview() {
+export default function Preview({ onImportClick }) {
   const {
     tracks, clips, isPlaying, currentTime, duration,
     setCurrentTime, setPlaying, togglePlayPause, setDuration
@@ -110,12 +110,15 @@ export default function Preview() {
       ) : (
         /* Empty State */
         <div className="text-center animate-fade-in">
-          <div className="w-[640px] max-w-full aspect-video bg-[#0d0f12] rounded-xl border border-[#2a2d35] border-dashed flex flex-col items-center justify-center mb-6 p-8">
-            <div className="w-20 h-20 rounded-2xl bg-[#1a1d23] flex items-center justify-center mb-4 ring-1 ring-[#2a2d35] shadow-inner">
-              <FiUpload className="text-3xl text-[#555860]" />
+          <div
+            onClick={onImportClick}
+            className="w-[640px] max-w-full aspect-video bg-[#0d0f12] rounded-xl border border-[#2a2d35] border-dashed flex flex-col items-center justify-center mb-6 p-8 cursor-pointer hover:border-blue-500/50 hover:bg-[#1a1d23] transition-all group"
+          >
+            <div className="w-20 h-20 rounded-2xl bg-[#1a1d23] flex items-center justify-center mb-4 ring-1 ring-[#2a2d35] shadow-inner group-hover:scale-110 transition-transform">
+              <FiUpload className="text-3xl text-[#555860] group-hover:text-blue-400 transition-colors" />
             </div>
-            <h3 className="text-base font-medium text-[#c0c4cc] mb-2">No Media Imported</h3>
-            <p className="text-sm text-[#808690]">Drag and drop videos, images or audio to the timeline</p>
+            <h3 className="text-base font-medium text-[#c0c4cc] mb-2 group-hover:text-white transition-colors">No Media Imported</h3>
+            <p className="text-sm text-[#808690]">Click to import videos, images or audio</p>
           </div>
         </div>
       )}

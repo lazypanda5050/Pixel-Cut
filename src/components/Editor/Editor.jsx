@@ -3,7 +3,7 @@ import {
   FiUpload, FiScissors, FiType, FiImage, FiMusic,
   FiDownload, FiLayers, FiSliders,
   FiSquare, FiCircle, FiCrop, FiDroplet,
-  FiZap, FiFilm
+  FiZap, FiFilm, FiTrash2
 } from 'react-icons/fi';
 import Preview from './Preview';
 import Timeline from './Timeline';
@@ -57,7 +57,7 @@ export default function Editor({ user }) {
     isPlaying, currentTime, duration, clips, activeTool, selectedClipId,
     togglePlayPause, setCurrentTime, setDuration, setActiveTool,
     addClip, selectClip, getSelectedClip, splitClip,
-    media, addMedia, updateClipProperties, updateMedia,
+    media, addMedia, updateClipProperties, updateMedia, deleteMedia,
   } = useEditorStore();
 
   const [activeView, setActiveView] = useState('preview');
@@ -251,7 +251,7 @@ export default function Editor({ user }) {
           </div>
 
           {activeView === 'preview' ? (
-            <Preview />
+            <Preview onImportClick={() => setActiveView('media')} />
           ) : (
             <div className="flex-1 p-6 overflow-y-auto">
               <div className="grid grid-cols-8 gap-3">
@@ -265,6 +265,20 @@ export default function Editor({ user }) {
                     {item.uploading && (
                       <div className="absolute inset-0 bg-black/40 rounded-lg flex items-center justify-center z-10">
                         <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-blue-400"></div>
+                      </div>
+                    )}
+                    {!item.uploading && (
+                      <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (confirm('Delete this file?')) deleteMedia(item.id);
+                          }}
+                          className="p-1 bg-black/60 rounded hover:bg-red-500/80 hover:text-white text-[#c0c4cc] transition-colors"
+                          title="Delete"
+                        >
+                          <FiTrash2 className="text-xs" />
+                        </button>
                       </div>
                     )}
                     {item.type === 'video' ? <FiFilm className="text-2xl text-[#555860] mb-2 group-hover:text-blue-400 transition-colors" /> :
