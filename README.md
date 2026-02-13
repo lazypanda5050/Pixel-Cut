@@ -313,18 +313,7 @@ await ffmpeg.run(
 
 ### Project Auto-Save
 
-Automatic save to Firestore every 5 seconds:
-
-```javascript
-useEffect(() => {
-  const saveInterval = setInterval(() => {
-    if (hasChanges) {
-      saveProjectToFirestore(projectData);
-    }
-  }, 5000);
-  return () => clearInterval(saveInterval);
-}, [projectData, hasChanges]);
-```
+Automatic save to Firestore every 30 seconds. This is implemented in `src/App.jsx` using a background timer that triggers when the editor is active.
 
 ## 🔧 Configuration
 

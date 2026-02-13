@@ -58,17 +58,32 @@ function App() {
     }
   };
 
-  const handleSaveProject = async () => {
+  const handleSaveProject = async (isAuto = false) => {
     if (!currentProject) return;
     try {
       const state = useEditorStore.getState();
       await saveProject(currentProject.id, state);
-      alert('Project saved automatically!'); // Minimal feedback for now
+      if (!isAuto) {
+        alert('Project saved successfully!');
+      }
+      console.log(isAuto ? 'Autosaved project' : 'Manually saved project');
     } catch (err) {
       console.error('Failed to save', err);
-      alert('Failed to save project');
+      if (!isAuto) {
+        alert('Failed to save project');
+      }
     }
   };
+
+  useEffect(() => {
+    if (view !== 'editor' || !currentProject) return;
+
+    const interval = setInterval(() => {
+      handleSaveProject(true);
+    }, 30000); // 30 seconds
+
+    return () => clearInterval(interval);
+  }, [view, currentProject]);
 
   // Loading state
   if (loading) {
